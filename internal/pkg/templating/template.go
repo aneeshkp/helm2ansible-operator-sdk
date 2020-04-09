@@ -143,3 +143,4 @@ func OverwriteController(outputDir, kind, apiVersion string, rcache *resourcecac
 	return nil
 
 }
+

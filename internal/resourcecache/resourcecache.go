@@ -67,6 +67,7 @@ type Resource struct {
 	PackageName PackageType
 	FileName    string
 	Functions   []ResourceFunction
+	SrcFilePath string
 }
 
 //ResourceFunction  ...
@@ -118,7 +119,7 @@ func (r *ResourceCache) SetResourceForKindType(kind KindType, packageType Packag
 	r.SetKindType(kind)
 	filename := fmt.Sprintf("%s.go", strings.ToLower(string(kind)))
 	if r.cache[kind] == nil {
-		r.cache[kind] = &Resource{PackageName: packageType, FileName: filename}
+		r.cache[kind] = &Resource{PackageName: packageType, FileName: filename, SrcFilePath: ""}
 	} else {
 		r.cache[kind].FileName = filename
 		r.cache[kind].PackageName = packageType

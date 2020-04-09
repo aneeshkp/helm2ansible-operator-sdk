@@ -20,21 +20,6 @@ func doGoScaffold() error {
 		return err
 	}
 
-	// add the api
-	cmd = getAPICommand()
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Error While Adding API")
-		return err
-	}
-
-	// add the controller
-	cmd = getControllerCommand()
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Error While Adding Controller")
-		return err
-	}
 	// returns the output scaffold directory
 	return nil
 }
@@ -42,7 +27,7 @@ func doGoScaffold() error {
 // getScaffoldCommand returns the correct command to build the operator-sdk scaffold
 func getScaffoldCommand() *exec.Cmd {
 	//scaffoldCommand := exec.Command("operator-sdk", "new", operatorName, "--dep-manager", "dep")
-	scaffoldCommand := exec.Command("operator-sdk", "new", operatorName)
+	scaffoldCommand := exec.Command("operator-sdk", "new", operatorName, "--api-version", apiVersion, "--kind", kind, "--type", "ansible")
 	scaffoldCommand.Dir = filepath.Dir(outputDir)
 	scaffoldCommand.Stdout = os.Stdout
 	scaffoldCommand.Stderr = os.Stderr
@@ -56,13 +41,4 @@ func getAPICommand() *exec.Cmd {
 	apiCommand.Stdout = os.Stdout
 	apiCommand.Stderr = os.Stderr
 	return apiCommand
-}
-
-// getControllerCommand returns the correct command to add the controller of the specified kind and version
-func getControllerCommand() *exec.Cmd {
-	controllerCommand := exec.Command("operator-sdk", "add", "controller", "--kind", kind, "--api-version", apiVersion)
-	controllerCommand.Dir = outputDir
-	controllerCommand.Stdout = os.Stdout
-	controllerCommand.Stderr = os.Stderr
-	return controllerCommand
 }

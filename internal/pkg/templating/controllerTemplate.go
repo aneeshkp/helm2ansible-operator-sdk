@@ -42,6 +42,8 @@ func (c *ControllerTemplateConfig) Execute() (string, error) {
 	return wr.String(), nil
 }
 
+//func (c *ControllerTemplateConfig) Get
+
 // GetTemplate returns the necessary template
 func (c *ControllerTemplateConfig) GetTemplate() string {
 	return `

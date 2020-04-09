@@ -2,9 +2,11 @@ package new
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tav/golly/log"
+	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/pkg/templating"
 )
 
 // GetNewCmd ...
@@ -12,7 +14,7 @@ func GetNewCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "new <New Name>",
 		Short: "Builds an Ansible Operator from an existing Helm Chart",
-		Long:  "Utilizes the Helm Rendering Engine and Operator-SDK to consume an existing Helm Chart to produce a Ansiblegsdggg Operator",
+		Long:  "Utilizes the Helm Rendering Engine and Operator-SDK to consume an existing Helm Chart to produce a Ansibleg Operator",
 		RunE:  newFunc,
 	}
 
@@ -33,7 +35,6 @@ func GetNewCmd() *cobra.Command {
 	// newCmd.Flags().MarkHidden("mock")
 
 	return newCmd
-
 
 }
 
@@ -88,13 +89,6 @@ func newFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// convert helm resources to Go resource cache
-	rcache, err := chartClient.DoHelmGoConversion()
-	if err != nil {
-		log.Error("error performing chart conversion: ", err)
-		return err
-	}
-
 	// output directory is the path/to/command/operator-name
 	outputDir = filepath.Join(chartClient.PathConfig.GetBasePath(), operatorName)
 
@@ -104,13 +98,21 @@ func newFunc(cmd *cobra.Command, args []string) error {
 		log.Error("error generating scaffolding: ", err)
 		return err
 	}
+	//COPY TEMPLATES
+	//Copy Templates to scaffold directors
+	// Temples goes to  roles/kind/templates
+	//.values file goes to roles/kind/defaults/main.yml
+	//create roles/kind/tasks .main.yml with all resource
+	copiedFiles,_:=chartClient.CopyTemplates(outputDir + "/roles/" + strings.ToLower(kind) + "/templates/")
+	//err = scaffoldOverwrite(outputDir, kind, apiVersion, rcache)
+	//if err != nil {
+	//	log.Error("error overwritting scaffold: ", err)
+	//	return err
+	//}
 
-	err = scaffoldOverwrite(outputDir, kind, apiVersion, rcache)
-	if err != nil {
-		log.Error("error overwritting scaffold: ", err)
-		return err
-	}
+	//os.Exit(1)
 
-	log.Infof("🤠 Go Operator Can Be Found At: %s", outputDir)
+	templating.RenderMainTaskTemplate(copiedFiles,outputDir + "/roles/" + strings.ToLower(kind) + "/tasks/main.yml")
+	log.Infof("🤠 Ansible Operator Can Be Found At: %s", outputDir)
 	return nil
 }

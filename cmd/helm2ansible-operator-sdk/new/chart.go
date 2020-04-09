@@ -3,13 +3,13 @@ package new
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/pathconfig"
-	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/pkg/load"
-	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/pkg/render"
 	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/pkg/templating"
 	"github.com/redhat-nfvpe/helm2ansible-operator-sdk/internal/resourcecache"
 	"k8s.io/helm/pkg/chartutil"
@@ -43,7 +43,7 @@ func NewChartClient() *HelmChartClient {
 	return &client
 }
 
-// SetValues ingests alle the necessary values for the client
+// SetValues ingests all the necessary values for the client
 func (hc *HelmChartClient) SetValues(helmChartRef, helmChartVersion, helmChartRepo, username, password, helmChartCAFile, helmChartCertFile, helmChartKeyFile string) {
 	hc.HelmChartRef = helmChartRef
 	hc.HelmChartVersion = helmChartVersion
@@ -55,7 +55,7 @@ func (hc *HelmChartClient) SetValues(helmChartRef, helmChartVersion, helmChartRe
 	hc.HelmChartKeyFile = helmChartKeyFile
 }
 
-//LoadChart uses the chart client's values to retreive the appropriate chart
+//LoadChart uses the chart client's values to retrieve  the appropriate chart
 func (hc *HelmChartClient) LoadChart() error {
 	var chartPath string
 	chartPath = hc.HelmChartRef
@@ -104,41 +104,28 @@ func (hc *HelmChartClient) LoadChart() error {
 
 	return nil
 }
+func (hc *HelmChartClient) CopyTemplates(dst string) ([]string, error) {
+	var copiedFiles []string
+	for _, template := range hc.Chart.Templates {
+		fileName := strings.Split(template.GetName(), "/")
+		if filepath.Ext(fileName[1]) == ".yaml" || filepath.Ext(fileName[1]) == ".yml" || filepath.Ext(fileName[1]) == ".tpl" {
+			f := fmt.Sprintf("%s", fileName[1]+".j2")
+			fmt.Println(f)
+			err := ioutil.WriteFile(dst+fileName[1]+".j2", template.GetData(), 0644)
+			if err == nil {
+				//fmt.Println(template.GetData())
+				copiedFiles = append(copiedFiles, f)
+			} else {
+				fmt.Printf("#%v", err)
+			}
 
-// DoHelemAnsilbeConversion takes a chart, injects all necessary values, and returns a cache of the converted Go structs
-func (hc *HelmChartClient) DoHelmAnsibleConversion() (*resourcecache.ResourceCache, error) {
-
-	// render the helm charts
-	f, err := render.InjectTemplateValues(hc.Chart)
-	if err != nil {
-		return nil, fmt.Errorf("error injecting template values: %v", err)
+		} else {
+			fmt.Println(filepath.Ext(fileName[1]))
+		}
 	}
-	// write the rendered charts to output directory
-	basePath := hc.PathConfig.GetBasePath()
-
-	temp, err := render.InjectedToTemp(f, basePath)
-	if err != nil {
-		return nil, fmt.Errorf("error writing template values to temp files: %v", err)
-	}
-
-	to := filepath.Join(temp, hc.ChartName, "templates")
-
-	// perform resource validation
-	validMap, err := load.PerformResourceValidation(to,true)
-	if err != nil {
-		return nil, fmt.Errorf("error performing resource validation: %v", err)
-	}
-
-	// convert the helm templates to go structures
-	rcache, err := load.YAMLUnmarshalResources(to, validMap, resourcecache.NewResourceCache())
-	if err != nil {
-		return nil, fmt.Errorf("error performing yaml un marshaling: %v", err)
-	}
-
-	// clean up temp folder
-	os.RemoveAll(temp)
-	return rcache, nil
+	return copiedFiles, nil
 }
+
 func scaffoldOverwrite(outputDir, kind, apiVersion string, rcache *resourcecache.ResourceCache) error {
 
 	if err := templating.OverwriteController(outputDir, kind, apiVersion, rcache); err != nil {
